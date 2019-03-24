@@ -1,0 +1,24 @@
+{
+  "exclude": [
+    "node_modules",
+    "./lib",
+    "./**/__tests__/",
+    "./testTypes.ts"
+  ],
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es5", "es6", "esnext"],
+    "declaration": true,
+    "sourceMap": false,
+    "outDir": "./lib",
+    "rootDir": "./src",
+    "strict": true,
+    "noImplicitAny": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true
+  }
+}

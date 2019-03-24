@@ -1,0 +1,24 @@
+{
+  "name": "@ts-graphql/rosetta-codegen",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "repository": "https://github.com/ts-graphql/rosetta-codegen",
+  "author": "stephentuso",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "typescript": "^3.3.4000"
+  },
+  "peerDependencies": {
+    "graphql": "^14.1.1"
+  },
+  "devDependencies": {
+    "@ts-graphql/rosetta": "^0.1.3",
+    "@types/graphql": "^14.0.7",
+    "@types/node": "^11.11.6",
+    "graphql": "^14.1.1",
+    "ts-node": "^8.0.3"
+  }
+}

@@ -2,6 +2,7 @@
   "name": "@ts-graphql/rosetta-codegen",
   "version": "0.0.0",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "repository": "https://github.com/ts-graphql/rosetta-codegen",
   "author": "stephentuso",
   "license": "MIT",
@@ -12,9 +13,6 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "jest"
-  },
-  "dependencies": {
-    "typescript": "^3.3.4000"
   },
   "peerDependencies": {
     "graphql": "^14.1.1"
@@ -28,7 +26,8 @@
     "graphql": "^14.1.1",
     "jest": "^24.5.0",
     "ts-jest": "^24.0.0",
-    "ts-node": "^8.0.3"
+    "ts-node": "^8.0.3",
+    "typescript": "^3.3.4000"
   },
   "jest": {
     "testEnvironment": "node",

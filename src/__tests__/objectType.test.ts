@@ -83,8 +83,6 @@ export const FooFields = {
 };
 `;
 
-    console.log(renderObjectType(Foo));
-
     expect(renderObjectType(Foo)).toEqual(expected);
   });
 });

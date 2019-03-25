@@ -14,7 +14,7 @@ import {
   isWrappingType,
   GraphQLEnumType,
   GraphQLType,
-  GraphQLInterfaceType, isScalarType, GraphQLFieldMap, GraphQLArgument, isNullableType,
+  GraphQLInterfaceType, isScalarType, GraphQLFieldMap, GraphQLArgument, isNullableType, isInputObjectType,
 } from 'graphql';
 import Maybe from 'graphql/tsutils/Maybe';
 
@@ -87,24 +87,24 @@ const scalarMapping: { [key: string]: string } = {
   ID: 'string',
 };
 
-function renderScalarType(type: GraphQLScalarType): string {
-  return `${renderDescription(type.description)}\nexport type ${type.name} = ${scalarMapping[type.name] || 'any'}`;
+export function renderScalarType(type: GraphQLScalarType, noDescription?: boolean): string {
+  return `${noDescription ? '' : `${renderDescription(type.description)}\n`}export type ${type.name} = ${scalarMapping[type.name] || 'any'};\n`;
 }
 
-function renderEnumType(type: GraphQLEnumType): string {
+export function renderEnumType(type: GraphQLEnumType): string {
   return `${renderDescription(type.description)}export enum ${type.name} {
 ${type
     .getValues()
-    .map(e => `  ${e.name}: '${e.name}'`)
+    .map(e => `  ${e.name} = '${e.name}',`)
     .join('\n')}
 }`;
 }
 
-function renderRootType(type: GraphQLObjectType): string {
+export function renderRootType(type: GraphQLObjectType): string {
   return renderObjectType(type);
 }
 
-function renderUnionType(type: GraphQLUnionType): string {
+export function renderUnionType(type: GraphQLUnionType): string {
   const helper = importHelper();
 
   const types = type.getTypes();
@@ -115,13 +115,13 @@ function renderUnionType(type: GraphQLUnionType): string {
 
   const unionType = `${renderDescription(type.description)}export type ${type.name} = ${types
     .map(t => t.name)
-    .join(' | ')}`;
+    .join(' | ')};`;
 
-  return [renderImports(helper.get()), unionType].join('\n\n');
+  return [renderImports(helper.get()), unionType].join('\n\n') + '\n';
 }
 
-function renderObjectType(
-  type: GraphQLObjectType | GraphQLInputObjectType | GraphQLInterfaceType,
+export function renderObjectType(
+  type: GraphQLObjectType | GraphQLInterfaceType,
 ): string {
   const helper = importHelper();
 
@@ -133,11 +133,11 @@ function renderObjectType(
   }
 
   const fieldDefinitions = fields
-    .map((field) => `  ${renderFieldName(field)}: ${renderFieldType(field.type, helper)}`)
+    .map((field) => `  ${renderFieldName(field)}: ${renderFieldType(field.type, helper)};`)
     .join('\n');
 
   const classFieldDefinitions = fields
-    .map((field) => `  ${renderFieldNameForClass(field)}: ${renderFieldType(field.type, helper)}`)
+    .map((field) => `  ${renderFieldNameForClass(field)}: ${renderFieldType(field.type, helper)};`)
     .join('\n');
 
   const queryFieldDefinitions = fields
@@ -165,6 +165,7 @@ function renderObjectType(
         ? `${exp} branchFieldWithArgs<${type.name}, '${field.name}', ${resolveBaseType(field.type)}, ${renderArgs(field.args, helper)}>('${field.name}')`
         : `${exp} branchField<${type.name}, '${field.name}', ${resolveBaseType(field.type)}>('${field.name}')`;
     })
+    .map((line) => `${line};`)
     .join('\n');
 
   let interfaces: GraphQLInterfaceType[] = [];
@@ -186,10 +187,10 @@ function renderObjectType(
 
   const allFieldDefinitionsObj = `export const ${type.name}Fields = {\n${allFieldDefinitions}\n};`;
 
-  return [imports, fieldsInterface, objectTypeClass, queryFieldDefinitions, allFieldDefinitionsObj].join('\n\n');
+  return [imports, fieldsInterface, objectTypeClass, queryFieldDefinitions, allFieldDefinitionsObj].join('\n\n') + '\n';
 }
 
-function renderInputObjectType(
+export function renderInputObjectType(
   type: GraphQLInputObjectType,
 ): string {
   const helper = importHelper();
@@ -203,9 +204,7 @@ function renderInputObjectType(
   const inputFieldDefinitions = Object.keys(type.getFields())
     .map((name) => {
       const field = type.getFields()[name];
-      const typeImport = resolveBaseType(field.type);
-      helper.addLocal(typeImport, typeImport);
-      return `  ${renderFieldNameForClass(field)}: ${renderFieldType(field.type, helper)}`;
+      return `  ${renderFieldNameForClass(field)}: ${renderFieldType(field.type, helper)};`;
     })
     .join('\n');
   const inputFieldsClass = renderTypeClass(inputName, null, null, inputFieldDefinitions);
@@ -213,7 +212,7 @@ function renderInputObjectType(
   const argFieldDefinitions = Object.keys(type.getFields())
     .map((name) => {
       const field = type.getFields()[name];
-      return `  ${renderFieldName(field)}: ${renderArgType(field.type, helper)}`;
+      return `  ${renderFieldName(field)}: ${renderArgType(field.type, helper)},`;
     })
     .join(`\n`);
   const argsFieldsType = renderType(argsName, argFieldDefinitions);
@@ -229,7 +228,7 @@ function renderInputObjectType(
   const argType = `export type ${argName(type.name)} = TypeWrapper<${argsName}, ${inputName}>;`;
 
   const imports = renderImports(helper.get());
-  return [imports, inputFieldsClass, argsFieldsType, varClass, argType].join('\n\n');
+  return [imports, inputFieldsClass, argsFieldsType, varClass, argType].join('\n\n') + '\n';
 }
 
 export function renderFieldNameForClass(field: GraphQLInputField | GraphQLField<any, any>) {
@@ -244,17 +243,27 @@ export function renderFieldType(type: GraphQLInputType | GraphQLOutputType, help
   if (isNonNullType(type)) {
     return renderFieldType(type.ofType, helper, false);
   }
+
   if (isListType(type)) {
-    return `Array<${renderFieldType(type.ofType, helper)}>`;
+    return renderNullable(`Array<${renderFieldType(type.ofType, helper)}>`, nullable, helper);
   }
 
+  const name = isInputObjectType(type)
+    ? inputFieldsName(type.name)
+    : type.name;
+
+  helper.addLocal(type.name, name);
+
+  return renderNullable(name, nullable, helper);
+}
+
+function renderNullable(name: string, nullable: boolean, helper: ImportHelper) {
   if (nullable) {
     helper.addRosetta('Maybe');
   }
-
   return nullable
-    ? `Maybe<${type.name}>`
-    : type.name;
+    ? `Maybe<${name}>`
+    : name;
 }
 
 function renderArgs(args: GraphQLArgument[], helper: ImportHelper) {
@@ -304,12 +313,14 @@ function resolveBaseType(type: GraphQLType): string {
 
 function renderImports(imports: Imports) {
   return Object.keys(imports)
+    .sort()
     .map((mod) => `import { ${renderImportItems(imports[mod])} } from '${mod}';`)
     .join('\n');
 }
 
 function renderImportItems(items: ImportItems) {
   return Object.keys(items)
+    .sort()
     .map((value) => `${value}${items[value] !== value ? ` as ${items[value]}` : ''}`)
     .join(', ');
 }

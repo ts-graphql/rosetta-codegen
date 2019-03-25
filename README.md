@@ -1,0 +1,1 @@
+# rosetta-codegen [![CircleCI](https://circleci.com/gh/ts-graphql/rosetta-codegen.svg?style=svg)](https://circleci.com/gh/ts-graphql/rosetta-codegen) [![Coverage Status](https://coveralls.io/repos/github/ts-graphql/rosetta-codegen/badge.svg?branch=master)](https://coveralls.io/github/ts-graphql/rosetta-codegen?branch=master)
